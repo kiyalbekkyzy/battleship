@@ -1,21 +1,27 @@
 // ===== Константы игры =====
-const SIZE = 8;
-const SHIP_SIZES = [3, 2, 2, 1, 1];
+const SIZE = 8;                                   // размер поля 8x8 клеток
+const SHIP_SIZES = [3, 2, 2, 1, 1];                // размеры кораблей флота (5 кораблей)
 
+// ===== НАСТРОЙКА РАЗМЕРА ИКОНКИ 3-КЛЕТОЧНОГО КОРАБЛЯ =====
+// Здесь можно менять размер ТОЛЬКО корабля длиной 3 клетки.
+// 1.00 = обычный размер
+// 1.05 = на 5% больше
+// 1.10 = на 10% больше
+// 1.15 = на 15% больше
+// 1.20 = на 20% больше
+const THREE_CELL_SHIP_SCALE = 1.10;
 
 // ===== Пути к картинкам кораблей =====
 const PLAYER_SHIP_IMG = 'player-cruiser.svg';
 const ENEMY_SHIP_IMG = 'enemy-tug.svg';
 
-
-// ===== Пути к звукам =====
+// ===== Пути к файлам звуков =====
 const SOUND_FILES = {
   hit: 'hit.mp3',
   miss: 'miss.mp3',
   win: 'win.mp3',
   lose: 'lose.mp3',
 };
-
 
 // ===== Состояние игры =====
 let playerBoard, enemyBoard;
@@ -25,80 +31,57 @@ let gameOver = false;
 let playerTurn = true;
 let soundOn = true;
 
-
 // ===== Web Audio API =====
 let audioCtx = null;
 
-
 function getAudioCtx() {
-
   if (!audioCtx) {
-
     audioCtx =
-      new (
-        window.AudioContext ||
-        window.webkitAudioContext
-      )();
-
+      new (window.AudioContext ||
+        window.webkitAudioContext)();
   }
 
   return audioCtx;
 }
 
-
-// ===== Проигрывание звука =====
+// ===== Универсальный проигрыватель =====
 function playSound(key, fallbackFn) {
-
   if (!soundOn) return;
 
-  const src =
-    SOUND_FILES[key];
-
-  const audio =
-    new Audio(src);
+  const src = SOUND_FILES[key];
+  const audio = new Audio(src);
 
   let usedFallback = false;
 
-
   const runFallback = () => {
-
     if (usedFallback) return;
 
     usedFallback = true;
-
     fallbackFn();
   };
-
 
   audio.addEventListener(
     'error',
     runFallback
   );
 
-
   const playPromise =
     audio.play();
-
 
   if (
     playPromise &&
     typeof playPromise.catch === 'function'
   ) {
-
     playPromise.catch(
       runFallback
     );
-
   }
 }
 
-
 // ===== Звук попадания =====
 function synthHitSound() {
-
   const ctx =
     getAudioCtx();
-
 
   const noiseBuffer =
     ctx.createBuffer(
@@ -107,30 +90,24 @@ function synthHitSound() {
       ctx.sampleRate
     );
 
-
   const data =
     noiseBuffer.getChannelData(0);
-
 
   for (
     let i = 0;
     i < data.length;
     i++
   ) {
-
     data[i] =
       (Math.random() * 2 - 1) *
       (1 - i / data.length);
-
   }
-
 
   const noise =
     ctx.createBufferSource();
 
   noise.buffer =
     noiseBuffer;
-
 
   const filter =
     ctx.createBiquadFilter();
@@ -143,28 +120,23 @@ function synthHitSound() {
     ctx.currentTime
   );
 
-
   const gain =
     ctx.createGain();
-
 
   gain.gain.setValueAtTime(
     0.5,
     ctx.currentTime
   );
 
-
   gain.gain.exponentialRampToValueAtTime(
     0.001,
     ctx.currentTime + 0.3
   );
 
-
   noise
     .connect(filter)
     .connect(gain)
     .connect(ctx.destination);
-
 
   noise.start();
 
@@ -173,13 +145,10 @@ function synthHitSound() {
   );
 }
 
-
 // ===== Звук промаха =====
 function synthMissSound() {
-
   const ctx =
     getAudioCtx();
-
 
   const osc =
     ctx.createOscillator();
@@ -187,39 +156,32 @@ function synthMissSound() {
   osc.type =
     'sine';
 
-
   osc.frequency.setValueAtTime(
     600,
     ctx.currentTime
   );
-
 
   osc.frequency.exponentialRampToValueAtTime(
     200,
     ctx.currentTime + 0.25
   );
 
-
   const gain =
     ctx.createGain();
-
 
   gain.gain.setValueAtTime(
     0.3,
     ctx.currentTime
   );
 
-
   gain.gain.exponentialRampToValueAtTime(
     0.001,
     ctx.currentTime + 0.25
   );
 
-
   osc
     .connect(gain)
     .connect(ctx.destination);
-
 
   osc.start();
 
@@ -228,13 +190,10 @@ function synthMissSound() {
   );
 }
 
-
 // ===== Победный звук =====
 function synthWinSound() {
-
   const ctx =
     getAudioCtx();
-
 
   const notes = [
     523.25,
@@ -243,69 +202,52 @@ function synthWinSound() {
     1046.5
   ];
 
-
   notes.forEach(
     (freq, i) => {
 
       const osc =
         ctx.createOscillator();
 
-
       osc.type =
         'triangle';
-
 
       osc.frequency.setValueAtTime(
         freq,
         ctx.currentTime + i * 0.12
       );
 
-
       const gain =
         ctx.createGain();
-
 
       gain.gain.setValueAtTime(
         0.25,
         ctx.currentTime + i * 0.12
       );
 
-
       gain.gain.exponentialRampToValueAtTime(
         0.001,
-        ctx.currentTime +
-        i * 0.12 +
-        0.3
+        ctx.currentTime + i * 0.12 + 0.3
       );
-
 
       osc
         .connect(gain)
         .connect(ctx.destination);
 
-
       osc.start(
         ctx.currentTime + i * 0.12
       );
 
-
       osc.stop(
-        ctx.currentTime +
-        i * 0.12 +
-        0.3
+        ctx.currentTime + i * 0.12 + 0.3
       );
-
     }
   );
 }
 
-
 // ===== Звук поражения =====
 function synthLoseSound() {
-
   const ctx =
     getAudioCtx();
-
 
   const notes = [
     392,
@@ -313,123 +255,88 @@ function synthLoseSound() {
     293.66
   ];
 
-
   notes.forEach(
     (freq, i) => {
 
       const osc =
         ctx.createOscillator();
 
-
       osc.type =
         'sawtooth';
-
 
       osc.frequency.setValueAtTime(
         freq,
         ctx.currentTime + i * 0.18
       );
 
-
       const gain =
         ctx.createGain();
-
 
       gain.gain.setValueAtTime(
         0.2,
         ctx.currentTime + i * 0.18
       );
 
-
       gain.gain.exponentialRampToValueAtTime(
         0.001,
-        ctx.currentTime +
-        i * 0.18 +
-        0.35
+        ctx.currentTime + i * 0.18 + 0.35
       );
-
 
       osc
         .connect(gain)
         .connect(ctx.destination);
 
-
       osc.start(
         ctx.currentTime + i * 0.18
       );
 
-
       osc.stop(
-        ctx.currentTime +
-        i * 0.18 +
-        0.35
+        ctx.currentTime + i * 0.18 + 0.35
       );
-
     }
   );
 }
 
-
 function playHitSound() {
-
   playSound(
     'hit',
     synthHitSound
   );
 }
 
-
 function playMissSound() {
-
   playSound(
     'miss',
     synthMissSound
   );
 }
 
-
 function playWinSound() {
-
   playSound(
     'win',
     synthWinSound
   );
 }
 
-
 function playLoseSound() {
-
   playSound(
     'lose',
     synthLoseSound
   );
 }
 
-
-// ============================================================
-// СОЗДАНИЕ ПОЛЯ
-// ============================================================
-
-
+// ===== Создание пустого поля =====
 function createEmptyBoard() {
-
   return Array.from(
     { length: SIZE },
-    () =>
-      Array(SIZE).fill(null)
+    () => Array(SIZE).fill(null)
   );
 }
 
-
-// ============================================================
-// РАССТАНОВКА КОРАБЛЕЙ
-// ============================================================
-
-
+// ===== Случайная расстановка кораблей =====
 function placeShips(board) {
 
   const ships = [];
-
 
   for (
     const size of SHIP_SIZES
@@ -437,29 +344,24 @@ function placeShips(board) {
 
     let placed = false;
 
-
     while (!placed) {
 
       const horizontal =
         Math.random() < 0.5;
-
 
       const row =
         Math.floor(
           Math.random() * SIZE
         );
 
-
       const col =
         Math.floor(
           Math.random() * SIZE
         );
 
-
       const cells = [];
 
       let fits = true;
-
 
       for (
         let i = 0;
@@ -472,12 +374,10 @@ function placeShips(board) {
             ? row
             : row + i;
 
-
         const c =
           horizontal
             ? col + i
             : col;
-
 
         if (
           r >= SIZE ||
@@ -490,13 +390,11 @@ function placeShips(board) {
           break;
         }
 
-
         cells.push([
           r,
           c
         ]);
       }
-
 
       if (
         fits &&
@@ -508,41 +406,32 @@ function placeShips(board) {
 
         cells.forEach(
           ([r, c]) => {
-
             board[r][c] =
               'ship';
-
           }
         );
-
 
         ships.push(
           cells
         );
-
 
         placed = true;
       }
     }
   }
 
-
   return ships;
 }
 
-
-// ============================================================
-// ПРОВЕРКА СОСЕДСТВА КОРАБЛЕЙ
-// ============================================================
-
-
+// ===== Проверка соседних кораблей =====
 function hasAdjacentShip(
   board,
   cells
 ) {
 
   for (
-    const [r, c] of cells
+    const [r, c]
+    of cells
   ) {
 
     for (
@@ -563,7 +452,6 @@ function hasAdjacentShip(
         const nc =
           c + dc;
 
-
         if (
           nr >= 0 &&
           nr < SIZE &&
@@ -578,16 +466,10 @@ function hasAdjacentShip(
     }
   }
 
-
   return false;
 }
 
-
-// ============================================================
-// СОЗДАНИЕ GRID
-// ============================================================
-
-
+// ===== Создание сетки =====
 function buildGrid(
   containerId
 ) {
@@ -597,25 +479,18 @@ function buildGrid(
       containerId
     );
 
-
-  grid.innerHTML =
-    '';
-
+  grid.innerHTML = '';
 
   grid.style.display =
     'grid';
 
-
   grid.style.gridTemplateColumns =
     `repeat(${SIZE}, 1fr)`;
-
 
   grid.style.gridTemplateRows =
     `repeat(${SIZE}, 1fr)`;
 
-
   const cells = [];
-
 
   for (
     let r = 0;
@@ -624,7 +499,6 @@ function buildGrid(
   ) {
 
     cells.push([]);
-
 
     for (
       let c = 0;
@@ -637,10 +511,8 @@ function buildGrid(
           'div'
         );
 
-
       cell.className =
         'cell';
-
 
       cell.dataset.r =
         r;
@@ -648,21 +520,15 @@ function buildGrid(
       cell.dataset.c =
         c;
 
-
-      // Жёстко закрепляем клетку
-      // за конкретной координатой Grid.
-
       cell.style.gridColumn =
         String(c + 1);
 
       cell.style.gridRow =
         String(r + 1);
 
-
       grid.appendChild(
         cell
       );
-
 
       cells[r].push(
         cell
@@ -670,26 +536,20 @@ function buildGrid(
     }
   }
 
-
   return cells;
 }
 
-
-// ============================================================
-// СЛОЙ ДЛЯ КОРАБЛЕЙ
-// ============================================================
+// ===== ОТДЕЛЬНЫЙ СЛОЙ ДЛЯ ИКОНОК КОРАБЛЕЙ =====
 //
-// ВАЖНО:
+// ИСПРАВЛЕНО:
+// Слой больше НЕ привязывается к родительскому контейнеру игрового поля.
 //
-// Здесь больше НЕТ второй CSS Grid.
+// Он создаётся непосредственно в body и получает точные координаты
+// самой сетки через getBoundingClientRect().
 //
-// Иконка корабля получает координаты непосредственно
-// от настоящих клеток через getBoundingClientRect().
+// Поэтому иконки не могут уехать за пределы игровой области
+// из-за position, transform, padding или overflow родителя.
 //
-// Поэтому она физически привязывается к реальным клеткам.
-//
-
-
 function getOrCreateShipLayer(
   gridEl
 ) {
@@ -698,27 +558,10 @@ function getOrCreateShipLayer(
     gridEl.id +
     'ShipLayer';
 
-
   let layer =
     document.getElementById(
       layerId
     );
-
-
-  const parent =
-    gridEl.parentElement;
-
-
-  if (
-    getComputedStyle(
-      parent
-    ).position === 'static'
-  ) {
-
-    parent.style.position =
-      'relative';
-  }
-
 
   if (!layer) {
 
@@ -727,40 +570,25 @@ function getOrCreateShipLayer(
         'div'
       );
 
-
     layer.id =
       layerId;
-
 
     layer.className =
       'ship-layer';
 
-
+    // ===== ГЛАВНОЕ ИСПРАВЛЕНИЕ =====
+    // Используем fixed относительно окна браузера.
     layer.style.position =
-      'absolute';
-
-
-    layer.style.left =
-      '0';
-
-    layer.style.top =
-      '0';
-
-
-    layer.style.width =
-      '100%';
-
-    layer.style.height =
-      '100%';
-
+      'fixed';
 
     layer.style.pointerEvents =
       'none';
 
-
     layer.style.zIndex =
       '99999';
 
+    layer.style.display =
+      'grid';
 
     layer.style.margin =
       '0';
@@ -771,26 +599,132 @@ function getOrCreateShipLayer(
     layer.style.border =
       '0';
 
-
     layer.style.boxSizing =
-      'border-box';
+      'content-box';
 
-
-    parent.appendChild(
+    document.body.appendChild(
       layer
     );
   }
 
+  return layer;
+}
+
+// ===== ТОЧНАЯ СИНХРОНИЗАЦИЯ С ИГРОВЫМ ПОЛЕМ =====
+function syncShipLayer(
+  gridEl
+) {
+
+  const layer =
+    getOrCreateShipLayer(
+      gridEl
+    );
+
+  const cs =
+    getComputedStyle(
+      gridEl
+    );
+
+  const gridRect =
+    gridEl.getBoundingClientRect();
+
+  // ===== Border =====
+  const borderLeft =
+    parseFloat(
+      cs.borderLeftWidth
+    ) || 0;
+
+  const borderTop =
+    parseFloat(
+      cs.borderTopWidth
+    ) || 0;
+
+  const borderRight =
+    parseFloat(
+      cs.borderRightWidth
+    ) || 0;
+
+  const borderBottom =
+    parseFloat(
+      cs.borderBottomWidth
+    ) || 0;
+
+  // ===== Padding =====
+  const paddingLeft =
+    parseFloat(
+      cs.paddingLeft
+    ) || 0;
+
+  const paddingTop =
+    parseFloat(
+      cs.paddingTop
+    ) || 0;
+
+  const paddingRight =
+    parseFloat(
+      cs.paddingRight
+    ) || 0;
+
+  const paddingBottom =
+    parseFloat(
+      cs.paddingBottom
+    ) || 0;
+
+  // ===== Реальная область клеток =====
+  const contentLeft =
+    gridRect.left +
+    borderLeft +
+    paddingLeft;
+
+  const contentTop =
+    gridRect.top +
+    borderTop +
+    paddingTop;
+
+  const contentWidth =
+    gridRect.width -
+    borderLeft -
+    borderRight -
+    paddingLeft -
+    paddingRight;
+
+  const contentHeight =
+    gridRect.height -
+    borderTop -
+    borderBottom -
+    paddingTop -
+    paddingBottom;
+
+  // ===== Позиция слоя =====
+  layer.style.left =
+    contentLeft + 'px';
+
+  layer.style.top =
+    contentTop + 'px';
+
+  layer.style.width =
+    contentWidth + 'px';
+
+  layer.style.height =
+    contentHeight + 'px';
+
+  // ===== Реальные размеры Grid =====
+  layer.style.gridTemplateColumns =
+    cs.gridTemplateColumns;
+
+  layer.style.gridTemplateRows =
+    cs.gridTemplateRows;
+
+  layer.style.columnGap =
+    cs.columnGap;
+
+  layer.style.rowGap =
+    cs.rowGap;
 
   return layer;
 }
 
-
-// ============================================================
-// РИСОВАНИЕ КОРАБЛЯ
-// ============================================================
-
-
+// ===== Рисуем силуэт корабля =====
 function renderShipOverlay(
   gridEl,
   ship,
@@ -798,157 +732,40 @@ function renderShipOverlay(
   isEnemy
 ) {
 
-  if (
-    !ship ||
-    ship.length === 0
-  ) {
-
-    return;
-  }
-
-
-  const layer =
-    getOrCreateShipLayer(
-      gridEl
-    );
-
-
-  // --------------------------------------------------------
-  // Получаем реальные клетки корабля
-  // --------------------------------------------------------
-
-  const shipCells =
-    ship
-      .map(
-        ([r, c]) => {
-
-          if (
-            gridEl.id ===
-            'playerGrid'
-          ) {
-
-            return playerCells[r][c];
-          }
-
-
-          return enemyCells[r][c];
-
-        }
-      )
-      .filter(Boolean);
-
-
-  if (
-    shipCells.length === 0
-  ) {
-
-    return;
-  }
-
-
-  // --------------------------------------------------------
-  // Получаем реальные координаты ВСЕХ клеток корабля
-  // --------------------------------------------------------
-
-  const rects =
-    shipCells.map(
-      cell =>
-        cell.getBoundingClientRect()
-    );
-
-
-  // --------------------------------------------------------
-  // Находим точные границы корабля
-  // --------------------------------------------------------
-
-  const left =
-    Math.min(
-      ...rects.map(
-        rect => rect.left
-      )
-    );
-
-
-  const top =
-    Math.min(
-      ...rects.map(
-        rect => rect.top
-      )
-    );
-
-
-  const right =
-    Math.max(
-      ...rects.map(
-        rect => rect.right
-      )
-    );
-
-
-  const bottom =
-    Math.max(
-      ...rects.map(
-        rect => rect.bottom
-      )
-    );
-
-
-  // Реальный размер всей области,
-  // которую занимает корабль.
-  //
-  // 3 клетки -> иконка на 3 клетки
-  // 2 клетки -> иконка на 2 клетки
-  // 1 клетка -> иконка на 1 клетку
-
-  const width =
-    right - left;
-
-
-  const height =
-    bottom - top;
-
-
-  if (
-    width <= 0 ||
-    height <= 0
-  ) {
-
-    return;
-  }
-
-
-  // --------------------------------------------------------
-  // Определяем ориентацию корабля
-  // --------------------------------------------------------
-
   const rows =
     ship.map(
       ([r]) => r
     );
 
+  const cols =
+    ship.map(
+      ([, c]) => c
+    );
 
-  const vertical =
-    Math.max(...rows) >
+  const minR =
     Math.min(...rows);
 
+  const maxR =
+    Math.max(...rows);
 
-  // --------------------------------------------------------
-  // Получаем реальные координаты слоя
-  // --------------------------------------------------------
+  const minC =
+    Math.min(...cols);
 
-  const layerRect =
-    layer.getBoundingClientRect();
+  const maxC =
+    Math.max(...cols);
 
+  const vertical =
+    maxR > minR;
 
-  // --------------------------------------------------------
-  // Контейнер корабля
-  // --------------------------------------------------------
+  const layer =
+    syncShipLayer(
+      gridEl
+    );
 
   const overlay =
     document.createElement(
       'div'
     );
-
 
   overlay.className =
     'ship-overlay' +
@@ -963,268 +780,165 @@ function renderShipOverlay(
         : ''
     );
 
+  // ===== Точная привязка к клеткам =====
+  overlay.style.gridColumn =
+    `${minC + 1} / ${maxC + 2}`;
 
-  overlay.style.position =
-    'absolute';
-
-
-  // Позиция относительно реального слоя.
-  // Это устраняет смещение из-за
-  // границ/padding родителя.
-
-  overlay.style.left =
-    (
-      left -
-      layerRect.left
-    ) + 'px';
-
-
-  overlay.style.top =
-    (
-      top -
-      layerRect.top
-    ) + 'px';
-
-
-  // Сам overlay всегда имеет ТОЧНЫЙ размер
-  // выбранных клеток.
-
-  overlay.style.width =
-    width + 'px';
-
-
-  overlay.style.height =
-    height + 'px';
-
-
-  overlay.style.margin =
-    '0';
-
-
-  overlay.style.padding =
-    '0';
-
-
-  overlay.style.border =
-    '0';
-
-
-  overlay.style.boxSizing =
-    'border-box';
-
+  overlay.style.gridRow =
+    `${minR + 1} / ${maxR + 2}`;
 
   overlay.style.display =
-    'block';
+    'flex';
 
+  overlay.style.alignItems =
+    'center';
+
+  overlay.style.justifyContent =
+    'center';
 
   overlay.style.overflow =
     'visible';
 
+  overlay.style.minWidth =
+    '0';
+
+  overlay.style.minHeight =
+    '0';
 
   overlay.style.pointerEvents =
     'none';
 
+  layer.appendChild(
+    overlay
+  );
 
-  // --------------------------------------------------------
-  // ПОВОРОТ КОРАБЛЯ
-  // --------------------------------------------------------
+  // Получаем реальный размер области корабля.
+  const overlayRect =
+    overlay.getBoundingClientRect();
+
+  const width =
+    overlayRect.width;
+
+  const height =
+    overlayRect.height;
 
   const rotator =
     document.createElement(
       'div'
     );
 
-
   rotator.className =
     'ship-rotator';
-
 
   rotator.style.position =
     'absolute';
 
-
-  // Ставим rotator точно в центр overlay.
-
   rotator.style.left =
     '50%';
-
 
   rotator.style.top =
     '50%';
 
-
   rotator.style.display =
     'block';
-
 
   rotator.style.margin =
     '0';
 
-
   rotator.style.padding =
     '0';
-
 
   rotator.style.boxSizing =
     'border-box';
 
-
   rotator.style.transformOrigin =
     'center center';
 
+  rotator.style.flex =
+    'none';
 
-  // --------------------------------------------------------
-  // ГОРИЗОНТАЛЬНЫЙ КОРАБЛЬ
-  // --------------------------------------------------------
+  rotator.style.pointerEvents =
+    'none';
 
-  if (!vertical) {
+  // ===== РАЗМЕР КОРАБЛЯ =====
+  //
+  // Только 3-клеточный корабль
+  // получает увеличенный масштаб.
+  //
+  // Размер можно менять здесь:
+  //
+  // THREE_CELL_SHIP_SCALE = 1.10
+  //
+  const shipScale =
+    ship.length === 3
+      ? THREE_CELL_SHIP_SCALE
+      : 1.00;
 
-    // Иконка имеет точно такую же ширину
-    // и высоту, как выбранные клетки.
-
-    rotator.style.width =
-      width + 'px';
-
-
-    rotator.style.height =
-      height + 'px';
-
-
-    rotator.style.transform =
-      'translate(-50%, -50%)';
-
-  }
-
-
-  // --------------------------------------------------------
-  // ВЕРТИКАЛЬНЫЙ КОРАБЛЬ
-  // --------------------------------------------------------
-
-  else {
-
-    // До поворота картинка горизонтальная.
-    //
-    // Если корабль занимает:
-    //
-    // 1 клетку по ширине
-    // 3 клетки по высоте
-    //
-    // до поворота:
-    //
-    // width  = 3 клетки
-    // height = 1 клетка
-    //
-    // после rotate(90deg):
-    //
-    // width  = 1 клетка
-    // height = 3 клетки
+  if (vertical) {
 
     rotator.style.width =
       height + 'px';
 
-
     rotator.style.height =
       width + 'px';
 
+    rotator.style.transform =
+      `translate(-50%, -50%) rotate(90deg) scale(${shipScale})`;
+
+  } else {
+
+    rotator.style.width =
+      width + 'px';
+
+    rotator.style.height =
+      height + 'px';
 
     rotator.style.transform =
-      'translate(-50%, -50%) rotate(90deg)';
-
+      `translate(-50%, -50%) scale(${shipScale})`;
   }
-
-
-  // --------------------------------------------------------
-  // КАРТИНКА КОРАБЛЯ
-  // --------------------------------------------------------
 
   const img =
     document.createElement(
       'img'
     );
 
-
   img.src =
     imgSrc;
-
 
   img.alt =
     '';
 
-
-  img.draggable =
-    false;
-
-
-  // Картинка занимает весь rotator.
-  //
-  // Поэтому размер автоматически зависит
-  // от количества клеток корабля.
-
   img.style.width =
     '100%';
-
 
   img.style.height =
     '100%';
 
-
   img.style.display =
     'block';
-
-
-  img.style.margin =
-    '0';
-
-
-  img.style.padding =
-    '0';
-
-
-  img.style.border =
-    '0';
-
-
-  img.style.boxSizing =
-    'border-box';
-
 
   img.style.objectFit =
     'fill';
 
+  img.style.margin =
+    '0';
+
+  img.style.padding =
+    '0';
 
   img.style.pointerEvents =
     'none';
-
-
-  img.style.userSelect =
-    'none';
-
-
-  // --------------------------------------------------------
-  // Собираем корабль
-  // --------------------------------------------------------
 
   rotator.appendChild(
     img
   );
 
-
   overlay.appendChild(
     rotator
   );
-
-
-  layer.appendChild(
-    overlay
-  );
 }
 
-
-// ============================================================
-// ОБНОВЛЕНИЕ КЛЕТКИ ИГРОКА
-// ============================================================
-
-
+// ===== Обновление клетки игрока =====
 function updatePlayerCell(
   r,
   c
@@ -1233,65 +947,42 @@ function updatePlayerCell(
   const cell =
     playerCells[r][c];
 
-
-  cell.classList.remove(
-    'ship',
-    'hit',
-    'miss',
-    'sunk'
-  );
-
-
-  const value =
+  const val =
     playerBoard[r][c];
 
+  cell.className =
+    'cell';
 
-  if (
-    value === 'ship'
-  ) {
+  if (val === 'ship') {
 
     cell.classList.add(
       'ship'
     );
   }
 
-
-  if (
-    value === 'hit'
-  ) {
+  if (val === 'hit') {
 
     cell.classList.add(
       'hit'
     );
   }
 
-
-  if (
-    value === 'miss'
-  ) {
-
-    cell.classList.add(
-      'miss'
-    );
-  }
-
-
-  if (
-    value === 'sunk'
-  ) {
+  if (val === 'sunk') {
 
     cell.classList.add(
       'sunk'
     );
   }
+
+  if (val === 'miss') {
+
+    cell.classList.add(
+      'miss'
+    );
+  }
 }
 
-
-// ============================================================
-// ОБНОВЛЕНИЕ КЛЕТКИ ВРАГА
-// ============================================================
-
-
+// ===== Обновление клетки врага =====
 function updateEnemyCell(
   r,
   c
@@ -1300,65 +991,38 @@ function updateEnemyCell(
   const cell =
     enemyCells[r][c];
 
-
-  cell.classList.remove(
-    'ship',
-    'hit',
-    'miss',
-    'sunk'
-  );
-
-
-  const value =
+  const val =
     enemyBoard[r][c];
 
+  cell.className =
+    'cell';
 
-  if (
-    value === 'ship'
-  ) {
+  // Корабль противника скрыт.
+  // Показываем только результат выстрела.
 
-    cell.classList.add(
-      'ship'
-    );
-  }
-
-
-  if (
-    value === 'hit'
-  ) {
+  if (val === 'hit') {
 
     cell.classList.add(
       'hit'
     );
   }
 
-
-  if (
-    value === 'miss'
-  ) {
-
-    cell.classList.add(
-      'miss'
-    );
-  }
-
-
-  if (
-    value === 'sunk'
-  ) {
+  if (val === 'sunk') {
 
     cell.classList.add(
       'sunk'
     );
   }
+
+  if (val === 'miss') {
+
+    cell.classList.add(
+      'miss'
+    );
+  }
 }
 
-
-// ============================================================
-// ОТОБРАЖЕНИЕ ПОЛЯ ИГРОКА
-// ============================================================
-
-
+// ===== Отрисовка поля игрока =====
 function renderPlayerBoard() {
 
   for (
@@ -1377,17 +1041,11 @@ function renderPlayerBoard() {
         r,
         c
       );
-
     }
   }
 }
 
-
-// ============================================================
-// ОТОБРАЖЕНИЕ ПОЛЯ ВРАГА
-// ============================================================
-
-
+// ===== Отрисовка поля врага =====
 function renderEnemyBoard() {
 
   for (
@@ -1406,17 +1064,11 @@ function renderEnemyBoard() {
         r,
         c
       );
-
     }
   }
 }
 
-
-// ============================================================
-// ВЗРЫВ
-// ============================================================
-
-
+// ===== Анимация взрыва =====
 function showExplosion(
   cellEl
 ) {
@@ -1426,32 +1078,22 @@ function showExplosion(
       'div'
     );
 
-
   explosion.className =
     'explosion';
-
 
   cellEl.appendChild(
     explosion
   );
 
-
   setTimeout(
     () => {
-
       explosion.remove();
-
     },
-    500
+    600
   );
 }
 
-
-// ============================================================
-// ПРОВЕРКА ПОТОПЛЕНИЯ
-// ============================================================
-
-
+// ===== Проверка потопления корабля =====
 function checkSunk(
   board,
   ships,
@@ -1459,56 +1101,44 @@ function checkSunk(
   c
 ) {
 
-  const ship =
-    ships.find(
-      cells =>
-        cells.some(
+  for (
+    const ship of ships
+  ) {
+
+    if (
+      ship.some(
+        ([sr, sc]) =>
+          sr === r &&
+          sc === c
+      )
+    ) {
+
+      const sunk =
+        ship.every(
           ([sr, sc]) =>
-            sr === r &&
-            sc === c
-        )
-    );
+            board[sr][sc] === 'hit' ||
+            board[sr][sc] === 'sunk'
+        );
 
+      if (sunk) {
 
-  if (!ship) {
+        ship.forEach(
+          ([sr, sc]) => {
 
-    return null;
-  }
+            board[sr][sc] =
+              'sunk';
+          }
+        );
 
-
-  const isSunk =
-    ship.every(
-      ([sr, sc]) =>
-        board[sr][sc] === 'hit' ||
-        board[sr][sc] === 'sunk'
-    );
-
-
-  if (isSunk) {
-
-    ship.forEach(
-      ([sr, sc]) => {
-
-        board[sr][sc] =
-          'sunk';
-
+        return ship;
       }
-    );
-
-
-    return ship;
+    }
   }
-
 
   return null;
 }
 
-
-// ============================================================
-// ПРОВЕРКА ВСЕХ ПОТОПЛЕННЫХ КОРАБЛЕЙ
-// ============================================================
-
-
+// ===== Проверка победы =====
 function allSunk(
   board,
   ships
@@ -1523,12 +1153,7 @@ function allSunk(
   );
 }
 
-
-// ============================================================
-// ВЫСТРЕЛ ИГРОКА
-// ============================================================
-
-
+// ===== Выстрел игрока =====
 function playerFire(
   r,
   c
@@ -1538,50 +1163,42 @@ function playerFire(
     gameOver ||
     !playerTurn
   ) {
-
     return;
   }
 
-
   const val =
     enemyBoard[r][c];
-
 
   if (
     val === 'hit' ||
     val === 'miss' ||
     val === 'sunk'
   ) {
-
     return;
   }
 
-
   const cellEl =
     enemyCells[r][c];
-
 
   if (
     val === 'ship'
   ) {
 
+    // Попадание.
+    // Клетка сразу становится красной.
     enemyBoard[r][c] =
       'hit';
-
 
     updateEnemyCell(
       r,
       c
     );
 
-
     showExplosion(
       cellEl
     );
 
-
     playHitSound();
-
 
     const sunkShip =
       checkSunk(
@@ -1591,17 +1208,21 @@ function playerFire(
         c
       );
 
-
     if (sunkShip) {
 
+      // Только после того, как
+      // ВСЕ клетки корабля найдены,
+      // показываем его иконку.
+
       sunkShip.forEach(
-        ([sr, sc]) =>
+        ([sr, sc]) => {
+
           updateEnemyCell(
             sr,
             sc
-          )
+          );
+        }
       );
-
 
       renderShipOverlay(
         document.getElementById(
@@ -1612,10 +1233,8 @@ function playerFire(
         true
       );
 
-
       statusEl_setSunk();
     }
-
 
     if (
       allSunk(
@@ -1624,49 +1243,38 @@ function playerFire(
       )
     ) {
 
-      endGame(
-        true
-      );
-
+      endGame(true);
 
       return;
     }
-
 
     if (!sunkShip) {
 
       setStatus(
         'Попадание! Стреляйте ещё раз.'
       );
-
     }
 
-  }
+  } else {
 
-
-  else {
+    // ===== ПРОМАХ =====
 
     enemyBoard[r][c] =
       'miss';
-
 
     updateEnemyCell(
       r,
       c
     );
 
-
     playMissSound();
-
 
     playerTurn =
       false;
 
-
     setStatus(
       'Промах! Ход компьютера...'
     );
-
 
     setTimeout(
       computerTurn,
@@ -1675,12 +1283,7 @@ function playerFire(
   }
 }
 
-
-// ============================================================
-// СТАТУС ПОТОПЛЕНИЯ
-// ============================================================
-
-
+// ===== Сообщение о потоплении =====
 function statusEl_setSunk() {
 
   setStatus(
@@ -1688,40 +1291,25 @@ function statusEl_setSunk() {
   );
 }
 
-
-// ============================================================
-// ИИ
-// ============================================================
-
-
+// ===== ИИ =====
 let aiTargets = [];
-
 
 function computerTurn() {
 
   if (gameOver) {
-
     return;
   }
 
-
   let r, c;
-
 
   if (
     aiTargets.length > 0
   ) {
 
-    [
-      r,
-      c
-    ] =
+    [r, c] =
       aiTargets.shift();
 
-  }
-
-
-  else {
+  } else {
 
     do {
 
@@ -1730,12 +1318,10 @@ function computerTurn() {
           Math.random() * SIZE
         );
 
-
       c =
         Math.floor(
           Math.random() * SIZE
         );
-
 
     } while (
       playerBoard[r][c] === 'hit' ||
@@ -1744,10 +1330,8 @@ function computerTurn() {
     );
   }
 
-
   const cellEl =
     playerCells[r][c];
-
 
   if (
     playerBoard[r][c] === 'ship'
@@ -1756,26 +1340,21 @@ function computerTurn() {
     playerBoard[r][c] =
       'hit';
 
-
     updatePlayerCell(
       r,
       c
     );
 
-
     showExplosion(
       cellEl
     );
 
-
     playHitSound();
-
 
     addAdjacentTargets(
       r,
       c
     );
-
 
     const sunkShip =
       checkSunk(
@@ -1785,18 +1364,18 @@ function computerTurn() {
         c
       );
 
-
     if (sunkShip) {
 
       sunkShip.forEach(
-        ([sr, sc]) =>
+        ([sr, sc]) => {
+
           updatePlayerCell(
             sr,
             sc
-          )
+          );
+        }
       );
     }
-
 
     if (
       allSunk(
@@ -1805,14 +1384,10 @@ function computerTurn() {
       )
     ) {
 
-      endGame(
-        false
-      );
-
+      endGame(false);
 
       return;
     }
-
 
     setStatus(
       sunkShip
@@ -1820,33 +1395,25 @@ function computerTurn() {
         : 'Компьютер попал! Его ход продолжается...'
     );
 
-
     setTimeout(
       computerTurn,
       700
     );
 
-  }
-
-
-  else {
+  } else {
 
     playerBoard[r][c] =
       'miss';
-
 
     updatePlayerCell(
       r,
       c
     );
 
-
     playMissSound();
-
 
     playerTurn =
       true;
-
 
     setStatus(
       'Компьютер промахнулся. Ваш ход!'
@@ -1854,41 +1421,18 @@ function computerTurn() {
   }
 }
 
-
-// ============================================================
-// ДОБАВЛЕНИЕ ЦЕЛЕЙ ИИ
-// ============================================================
-
-
+// ===== Добавление соседних целей ИИ =====
 function addAdjacentTargets(
   r,
   c
 ) {
 
   const candidates = [
-
-    [
-      r - 1,
-      c
-    ],
-
-    [
-      r + 1,
-      c
-    ],
-
-    [
-      r,
-      c - 1
-    ],
-
-    [
-      r,
-      c + 1
-    ]
-
+    [r - 1, c],
+    [r + 1, c],
+    [r, c - 1],
+    [r, c + 1]
   ];
-
 
   for (
     const [nr, nc]
@@ -1913,35 +1457,18 @@ function addAdjacentTargets(
   }
 }
 
-
-// ============================================================
-// СТАТУС
-// ============================================================
-
-
+// ===== Статус =====
 function setStatus(
   text
 ) {
 
-  const status =
-    document.getElementById(
-      'status'
-    );
-
-
-  if (status) {
-
-    status.textContent =
-      text;
-  }
+  document.getElementById(
+    'status'
+  ).textContent =
+    text;
 }
 
-
-// ============================================================
-// КОНЕЦ ИГРЫ
-// ============================================================
-
-
+// ===== Завершение игры =====
 function endGame(
   playerWon
 ) {
@@ -1949,129 +1476,23 @@ function endGame(
   gameOver =
     true;
 
-
   setStatus(
     playerWon
       ? '🎉 Вы победили! Весь флот противника потоплен.'
       : '💀 Поражение. Ваш флот уничтожен.'
   );
 
-
   if (playerWon) {
 
     playWinSound();
 
-  }
-
-
-  else {
+  } else {
 
     playLoseSound();
-
   }
 }
 
-
-// ============================================================
-// ОБНОВЛЕНИЕ ВСЕХ ИКОНОК КОРАБЛЕЙ
-// ============================================================
-
-
-function refreshShipOverlays() {
-
-  document
-    .querySelectorAll(
-      '.ship-overlay'
-    )
-    .forEach(
-      el =>
-        el.remove()
-    );
-
-
-  const doRender =
-    () => {
-
-      const playerGridEl =
-        document.getElementById(
-          'playerGrid'
-        );
-
-
-      if (
-        playerGridEl &&
-        playerShips
-      ) {
-
-        playerShips.forEach(
-          ship =>
-            renderShipOverlay(
-              playerGridEl,
-              ship,
-              PLAYER_SHIP_IMG,
-              false
-            )
-        );
-      }
-
-
-      const enemyGridEl =
-        document.getElementById(
-          'enemyGrid'
-        );
-
-
-      if (
-        enemyGridEl &&
-        enemyShips
-      ) {
-
-        enemyShips.forEach(
-          ship => {
-
-            const isSunk =
-              ship.every(
-                ([r, c]) =>
-                  enemyBoard[r][c] ===
-                  'sunk'
-              );
-
-
-            if (isSunk) {
-
-              renderShipOverlay(
-                enemyGridEl,
-                ship,
-                ENEMY_SHIP_IMG,
-                true
-              );
-            }
-          }
-        );
-      }
-    };
-
-
-  // Два кадра нужны, чтобы браузер успел
-  // окончательно рассчитать размеры клеток.
-
-  requestAnimationFrame(
-    () => {
-
-      requestAnimationFrame(
-        doRender
-      );
-
-    }
-  );
-}
-
-
-// ============================================================
-// НОВАЯ ИГРА
-// ============================================================
-
-
+// ===== Новая игра =====
 function newGame() {
 
   playerCells =
@@ -2079,64 +1500,119 @@ function newGame() {
       'playerGrid'
     );
 
-
   enemyCells =
     buildGrid(
       'enemyGrid'
     );
 
-
   playerBoard =
     createEmptyBoard();
 
-
   enemyBoard =
     createEmptyBoard();
-
 
   playerShips =
     placeShips(
       playerBoard
     );
 
-
   enemyShips =
     placeShips(
       enemyBoard
     );
 
-
   gameOver =
     false;
-
 
   playerTurn =
     true;
 
-
   aiTargets = [];
-
 
   renderPlayerBoard();
 
-
   renderEnemyBoard();
 
-
   refreshShipOverlays();
-
 
   setStatus(
     'Стреляйте по полю противника — кликните по клетке справа'
   );
 }
 
+// ===== Обновление силуэтов кораблей =====
+function refreshShipOverlays() {
 
-// ============================================================
-// КЛИК ПО ВРАЖЕСКОМУ ПОЛЮ
-// ============================================================
+  document
+    .querySelectorAll(
+      '.ship-overlay'
+    )
+    .forEach(
+      el => el.remove()
+    );
 
+  const doRender = () => {
 
+    const playerGridEl =
+      document.getElementById(
+        'playerGrid'
+      );
+
+    // ===== СВОЙ ФЛОТ =====
+    // Свои корабли игрок видит всегда.
+    playerShips.forEach(
+      ship =>
+        renderShipOverlay(
+          playerGridEl,
+          ship,
+          PLAYER_SHIP_IMG,
+          false
+        )
+    );
+
+    const enemyGridEl =
+      document.getElementById(
+        'enemyGrid'
+      );
+
+    // ===== ФЛОТ ПРОТИВНИКА =====
+    //
+    // В начале игры корабли НЕ рисуются.
+    //
+    // Иконка появляется только тогда,
+    // когда ВСЕ клетки конкретного
+    // корабля имеют состояние "sunk".
+
+    enemyShips.forEach(
+      ship => {
+
+        if (
+          ship.every(
+            ([r, c]) =>
+              enemyBoard[r][c] === 'sunk'
+          )
+        ) {
+
+          renderShipOverlay(
+            enemyGridEl,
+            ship,
+            ENEMY_SHIP_IMG,
+            true
+          );
+        }
+      }
+    );
+  };
+
+  requestAnimationFrame(
+    () =>
+      requestAnimationFrame(
+        doRender
+      )
+  );
+}
+
+// ===== Клик по клетке врага =====
 document
   .getElementById(
     'enemyGrid'
@@ -2150,12 +1626,9 @@ document
           '.cell'
         );
 
-
       if (!cell) {
-
         return;
       }
-
 
       playerFire(
         Number(
@@ -2168,12 +1641,7 @@ document
     }
   );
 
-
-// ============================================================
-// КНОПКА НОВОЙ ИГРЫ
-// ============================================================
-
-
+// ===== Новая игра =====
 document
   .getElementById(
     'newGameBtn'
@@ -2183,12 +1651,7 @@ document
     newGame
   );
 
-
-// ============================================================
-// КНОПКА ЗВУКА
-// ============================================================
-
-
+// ===== Звук =====
 document
   .getElementById(
     'soundBtn'
@@ -2200,40 +1663,31 @@ document
       soundOn =
         !soundOn;
 
-
       this.textContent =
         soundOn
           ? '🔊 Звук: вкл'
           : '🔇 Звук: выкл';
-
     }
   );
 
-
-// ============================================================
-// RESIZE
-// ============================================================
-
-
+// ===== Пересчёт при изменении размера окна =====
 window.addEventListener(
   'resize',
   refreshShipOverlays
 );
 
+// ===== Пересчёт при прокрутке страницы =====
+// Нужно потому, что слой находится поверх страницы
+// и должен следовать за игровым полем.
+window.addEventListener(
+  'scroll',
+  refreshShipOverlays
+);
 
-// ============================================================
-// ЗАПУСК ИГРЫ
-// ============================================================
-
-
+// ===== Запуск игры =====
 newGame();
 
-
-// ============================================================
-// ПЕРЕСЧЁТ ПОСЛЕ ПОЛНОЙ ЗАГРУЗКИ
-// ============================================================
-
-
+// ===== Дополнительный пересчёт после загрузки =====
 window.addEventListener(
   'load',
   refreshShipOverlays
