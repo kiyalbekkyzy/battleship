@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"> <!-- кодировка страницы -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Морской бой</title>
+<link rel="stylesheet" href="style.css"> <!-- вынесенные стили -->
+</head>
+<body>
+<div class="wrap">
+  <h1>🚢 OCEAN FIGHT</h1>                          <!-- заголовок игры -->
+  <p id="status">Стреляйте по полю противника — кликните по клетке справа</p> <!-- статус-строка -->
+
+  <div class="boards">                             <!-- контейнер для двух досок -->
+    <div class="board-block">
+      <h2>Ваш флот <span class="tag tag-player">синий</span></h2> <!-- подпись над доской игрока -->
+      <div class="grid" id="playerGrid"></div>      <!-- сетка поля игрока (сюда стреляет компьютер) -->
+    </div>
+    <div class="board-block">
+      <h2>Поле противника <span class="tag tag-enemy">красный</span></h2> <!-- подпись над доской врага -->
+      <div class="grid enemy" id="enemyGrid"></div>  <!-- сетка поля врага (сюда стреляет игрок) -->
+    </div>
+  </div>
+
+  <div class="controls">                             <!-- панель кнопок управления -->
+    <button class="action primary" id="newGameBtn">Новая игра</button> <!-- кнопка новой игры -->
+    <button class="action" id="soundBtn">🔊 Звук: вкл</button>          <!-- переключатель звука -->
+  </div>
+
+  <p class="legend">Синие корабли — ваш флот, он виден всегда. Корабли противника скрыты и появляются красным силуэтом только когда потоплены целиком. Взрыв — попадание, точка — промах.</p>
+</div>
+
+<script src="script.js" defer></script> <!-- вынесенная логика игры -->
+</body>
+</html>

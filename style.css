@@ -1,0 +1,245 @@
+/* ===== Цветовые токены темы (тёмный океан + синий флот игрока / красный флот врага) ===== */
+:root {
+  --bg: #0b1b29;              /* фон страницы */
+  --card-bg: #132437;         /* фон карточки (не используется напрямую, но оставлен для расширения) */
+  --text: #eef1f3;            /* основной цвет текста */
+  --muted: #8fa5b3;           /* приглушённый текст */
+  --water: #1f3a4d;           /* цвет клетки "вода" */
+  --water-hover: #2c516b;     /* клетка при наведении */
+  --ship: #4f7a94;            /* цвет клетки со своим кораблём (синий флот) */
+  --hit: #c1554b;             /* цвет попадания (совпадает с красным флотом врага) */
+  --miss: #5a6b78;            /* цвет промаха */
+  --sunk: #7a352d;            /* цвет потопленного корабля */
+  --border: #2c4a5c;          /* цвет границ */
+  --accent: #d8c67a;          /* акцентный золотистый (как палуба крейсера) */
+}
+/* ===== Переопределение цветов под системную тёмную тему ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #070f18;
+    --card-bg: #0e1c2b;
+  }
+}
+/* ===== Переопределение, если явно выставлена тёмная тема ===== */
+:root[data-theme="dark"] {
+  --bg: #070f18;
+  --card-bg: #0e1c2b;
+}
+
+* { box-sizing: border-box; }                 /* все размеры считаем с учётом padding/border */
+
+body {
+  margin: 0;                                  /* убираем стандартный отступ браузера */
+  min-height: 100vh;                           /* высота минимум во весь экран */
+  background: var(--bg);                       /* фон из переменной */
+  color: var(--text);                           /* цвет текста из переменной */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; /* шрифт */
+  display: flex;                                /* флекс-контейнер */
+  align-items: center;                          /* центрируем по вертикали */
+  justify-content: center;                      /* центрируем по горизонтали */
+  padding: 20px;                                /* внутренний отступ от краёв экрана */
+}
+
+.wrap {
+  width: 100%;                                  /* занимаем всю доступную ширину */
+  max-width: 820px;                             /* не растягиваемся больше этого */
+  text-align: center;                           /* центрируем текст внутри */
+}
+
+h1 {
+  margin: 0 0 4px;                              /* отступ снизу от заголовка */
+  font-size: 26px;                              /* размер шрифта заголовка */
+  letter-spacing: 0.5px;
+}
+
+#status {
+  margin: 0 0 16px;                             /* отступ снизу от статуса */
+  color: var(--muted);                          /* приглушённый цвет */
+  min-height: 22px;                             /* чтобы текст не "прыгал" */
+  font-size: 15px;                              /* размер текста статуса */
+}
+
+.boards {
+  display: flex;                                /* располагаем доски в ряд */
+  gap: 28px;                                    /* расстояние между досками */
+  justify-content: center;                      /* центрируем ряд досок */
+  flex-wrap: wrap;                               /* перенос на маленьких экранах */
+}
+
+.board-block h2 {
+  font-size: 15px;                              /* размер подписи над доской */
+  color: var(--muted);                          /* приглушённый цвет подписи */
+  margin: 0 0 8px;                              /* отступ снизу подписи */
+  font-weight: 600;                             /* полужирный текст */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tag {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.tag-player { background: rgba(79, 122, 148, 0.25); color: #9cc3d8; }
+.tag-enemy  { background: rgba(193, 85, 75, 0.25); color: #e6a099; }
+
+.grid {
+  display: grid;                                /* сетка для клеток поля */
+  grid-template-columns: repeat(8, 1fr);        /* 8 равных колонок */
+  grid-template-rows: repeat(8, 1fr);           /* 8 равных строк (нужно для наложения кораблей) */
+  gap: 3px;                                     /* зазор между клетками */
+  width: 320px;                                 /* фиксированная ширина сетки */
+  aspect-ratio: 1 / 1;                          /* квадратная сетка */
+  background: var(--border);                    /* цвет "сетки" (просветы между клетками) */
+  padding: 3px;                                 /* рамка вокруг сетки */
+  border-radius: 10px;                          /* скруглённые углы */
+}
+
+.cell {
+  position: relative;                           /* нужно для позиционирования взрыва внутри */
+  z-index: 1;                                   /* базовый уровень наложения */
+  background: var(--water);                     /* цвет клетки-воды */
+  border-radius: 4px;                           /* лёгкое скругление клетки */
+  display: flex;                                /* центрируем содержимое клетки */
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;                              /* обрезаем анимацию взрыва по границам клетки */
+  cursor: pointer;                               /* курсор-указатель на кликабельных клетках */
+  transition: background 0.15s ease;             /* плавная смена цвета */
+}
+
+.enemy .cell:hover:not(.hit):not(.miss):not(.sunk) {
+  background: var(--water-hover);                /* подсветка при наведении только на поле врага */
+}
+
+.cell.ship {
+  background: var(--ship);                       /* клетка со своим кораблём видна игроку */
+}
+
+.cell.miss {
+  background: var(--miss);                       /* цвет промаха */
+  cursor: default;                                /* больше не кликабельна */
+}
+
+.cell.miss::after {
+  content: '';                                    /* пустой псевдоэлемент-точка */
+  width: 8px; height: 8px;                        /* маленькая точка */
+  background: var(--text);                        /* цвет точки */
+  border-radius: 50%;                              /* делаем круглой */
+  opacity: 0.6;                                    /* полупрозрачная */
+}
+
+.cell.hit {
+  background: var(--hit);                          /* красный цвет попадания */
+  cursor: default;                                  /* больше не кликабельна */
+}
+
+.cell.sunk {
+  background: var(--sunk);                          /* тёмно-красный для потопленного корабля */
+}
+
+/* Клетки в активном состоянии попадания/промаха рисуются НАД силуэтом корабля,
+   чтобы взрыв и точка промаха были видны поверх картинки */
+.cell.hit, .cell.sunk, .cell.miss {
+  z-index: 2;
+}
+
+/* ===== Силуэт корабля, растянутый на все клетки, которые он занимает ===== */
+.ship-overlay {
+  position: relative;                              /* точка отсчёта для картинки внутри */
+  z-index: 1;                                      /* тот же уровень, что и обычные клетки, но рисуется позже них */
+  pointer-events: none;                            /* не мешает кликам по клеткам под собой */
+}
+
+.ship-overlay .ship-rotator {
+  position: absolute;                              /* позиционируем картинку по центру блока */
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+}
+
+.ship-overlay.vertical .ship-rotator {
+  transform: translate(-50%, -50%) rotate(90deg);  /* поворачиваем вертикально расположенный корабль */
+}
+
+.ship-overlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;                             /* сохраняем пропорции картинки корабля */
+  display: block;
+}
+
+/* ===== Анимация взрыва: несколько "частиц", разлетающихся из центра ===== */
+.explosion {
+  position: absolute;                               /* поверх клетки */
+  inset: 0;                                          /* растянуть на всю клетку */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;                              /* не мешает кликам */
+}
+
+.explosion .core {
+  width: 10px; height: 10px;                          /* стартовый размер вспышки */
+  background: radial-gradient(circle, #fff7ae, #ff9d00 60%, transparent 70%); /* градиент огня */
+  border-radius: 50%;                                  /* круглая форма */
+  animation: burst 0.5s ease-out forwards;             /* запускаем анимацию расширения */
+}
+
+@keyframes burst {
+  0%   { transform: scale(0.3); opacity: 1; }          /* маленькая и яркая в начале */
+  60%  { transform: scale(2.4); opacity: 0.9; }        /* быстро расширяется */
+  100% { transform: scale(3.2); opacity: 0; }          /* растворяется */
+}
+
+.explosion .spark {
+  position: absolute;                                   /* искры позиционируются отдельно от ядра */
+  width: 4px; height: 4px;                               /* размер искры */
+  background: #ffb703;                                   /* оранжевый цвет искры */
+  border-radius: 50%;                                    /* круглая искра */
+  animation: fly 0.5s ease-out forwards;                 /* анимация разлёта */
+}
+
+/* Направления разлёта искр задаются через CSS-переменные --dx/--dy на каждом элементе */
+@keyframes fly {
+  0%   { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+}
+
+.controls {
+  margin-top: 22px;                                       /* отступ сверху от досок */
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+button.action {
+  padding: 12px 20px;                                      /* внутренние отступы кнопки */
+  border: 1px solid var(--border);                          /* тонкая рамка */
+  border-radius: 12px;                                      /* скруглённые углы */
+  background: transparent;                                  /* прозрачный фон */
+  color: var(--text);                                        /* цвет текста кнопки */
+  font-size: 15px;                                           /* размер шрифта */
+  font-weight: 600;                                          /* полужирный */
+  cursor: pointer;                                           /* курсор-указатель */
+  transition: background 0.15s ease;                         /* плавный переход фона */
+}
+
+button.action:hover { background: var(--water); }             /* подсветка при наведении */
+
+button.action.primary {
+  background: var(--accent);                                  /* акцентная кнопка */
+  border-color: var(--accent);
+  color: #2a2410;                                              /* тёмный текст на золотистой кнопке */
+}
+
+.legend {
+  margin-top: 14px;                                            /* отступ сверху легенды */
+  font-size: 13px;                                             /* мелкий текст */
+  color: var(--muted);                                         /* приглушённый цвет */
+}
