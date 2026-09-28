@@ -1,0 +1,113 @@
+/* ===== Фоны экранов OCEAN FIGHT (подключать ПОСЛЕ style.css) ===== */
+:root {
+  /* волна как маска: цвет задаётся через background, форма — отсюда */
+  --wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0 60Q150 0 300 60T600 60T900 60T1200 60V120H0Z'/%3E%3C/svg%3E");
+  /* ИСПРАВЛЕНО: было --ship, что перебивало цвет клетки корабля из style.css */
+  --ship-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cpath fill='%23000' fill-opacity='.6' d='M8 62h184l-26 24H34zM92 14h5v48h-5zM56 38h44v24H56zM108 30h34v32h-34zM70 26h18v12H70z'/%3E%3C/svg%3E");
+  --w1: rgba(9, 49, 84, .85);
+  --w2: rgba(20, 100, 150, .55);
+}
+
+/* --- общие настройки полноэкранных экранов --- */
+.handoff { overflow: hidden; background-repeat: no-repeat; }
+.handoff .box { position: relative; z-index: 3; padding: 28px 26px; border-radius: 20px;
+  background: rgba(6, 18, 32, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 10px 40px rgba(0, 0, 0, .45); }
+.handoff .box p { color: #cfdde6; }
+
+/* две анимированные волны внизу каждого экрана */
+.handoff::before, .handoff::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 1;
+  -webkit-mask: var(--wave) repeat-x 0 bottom / 1200px 100%; mask: var(--wave) repeat-x 0 bottom / 1200px 100%;
+}
+.handoff::before { height: 26vh; background: var(--w2); animation: drift 30s linear infinite reverse; }
+.handoff::after  { height: 17vh; background: var(--w1); animation: drift 20s linear infinite; }
+@keyframes drift {
+  to { -webkit-mask-position: 1200px bottom; mask-position: 1200px bottom; }
+}
+
+/* --- 🚢 Главный экран: закат над морем --- */
+#home {
+  background-image:
+    var(--ship-art),
+    radial-gradient(circle at 50% 72%, #fff3b0 0 40px, rgba(255, 190, 90, .55) 41px 130px, transparent 300px),
+    linear-gradient(180deg, #1b1147 0%, #7a2f6b 36%, #ff7a45 60%, #ffd27a 72%, #0e3a5c 72.1%, #06213a 100%);
+  background-size: 240px auto, 100% 100%, 100% 100%;
+  background-position: 72% 74%, 0 0, 0 0;
+}
+
+/* --- 🌙 Режим для одного: ночное море, луна, звёзды --- */
+#soloMenu {
+  --w1: rgba(3, 18, 38, .9); --w2: rgba(12, 60, 105, .55);
+  background-image:
+    radial-gradient(circle at 80% 20%, #fff8dc 0 30px, rgba(255, 248, 220, .22) 31px 75px, transparent 140px),
+    radial-gradient(1.5px 1.5px at 12% 18%, #fff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 30% 8%, #fff 50%, transparent 51%),
+    radial-gradient(2px 2px at 46% 26%, #fff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 60% 12%, #fff 50%, transparent 51%),
+    radial-gradient(2px 2px at 22% 38%, #cfe 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 90% 40%, #fff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 6% 52%, #fff 50%, transparent 51%),
+    linear-gradient(180deg, #020617 0%, #0a2342 55%, #0b3a63 100%);
+}
+
+/* --- 🌅 Сыграть с другом: рассвет, два корабля --- */
+#menu {
+  --w1: rgba(8, 60, 90, .85); --w2: rgba(30, 140, 160, .5);
+  background-image:
+    var(--ship-art), var(--ship-art),
+    radial-gradient(circle at 50% 74%, rgba(255, 240, 190, .9) 0 30px, transparent 220px),
+    linear-gradient(180deg, #0b3c5d 0%, #1f8a9e 50%, #f6d9a0 74%, #0a3550 74.1%, #062b45 100%);
+  background-size: 200px auto, 150px auto, 100% 100%, 100% 100%;
+  background-position: 12% 76%, 88% 77%, 0 0, 0 0;
+}
+
+/* --- 🤫 Передача устройства: туманная глубокая вода --- */
+#handoff {
+  --w1: rgba(5, 20, 35, .92); --w2: rgba(20, 70, 110, .5);
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgba(120, 190, 230, .45), transparent 60%),
+    repeating-conic-gradient(from 180deg at 50% -10%, rgba(180, 220, 255, .07) 0 6deg, transparent 6deg 14deg),
+    linear-gradient(180deg, #0d2a44, #050f1a);
+}
+
+/* --- 🏆 Финал: золотые лучи победы --- */
+#final {
+  --w1: rgba(58, 28, 92, .9); --w2: rgba(160, 90, 40, .5);
+  background-image:
+    repeating-conic-gradient(from 0deg at 50% 55%, rgba(255, 225, 120, .22) 0 7deg, transparent 7deg 14deg),
+    radial-gradient(circle at 50% 55%, #ffe9a3 0, #f0a030 30%, #5a2a6e 70%, #1a0e33 100%);
+}
+#final::before, #final::after { z-index: 1; }
+
+/* --- ⚓ Игровой экран: глубокое море (расстановка = гавань, бой = шторм) --- */
+body {
+  background-color: #06131f;
+  background-image:
+    linear-gradient(180deg, #0c2b47 0%, #0a1f35 50%, #050e18 100%);
+  background-attachment: fixed;
+}
+body:has(#setupPanel:not(.hidden)) {          /* расстановка: закатная гавань */
+  background-image:
+    radial-gradient(circle at 50% 100%, rgba(255, 150, 80, .35), transparent 55%),
+    linear-gradient(180deg, #1b2a52 0%, #2f3f6b 45%, #0a2038 100%);
+}
+body:has(#enemyBlock:not(.hidden)) {          /* бой: тёмный шторм, красноватый отсвет */
+  background-image:
+    radial-gradient(ellipse at 50% 110%, rgba(200, 70, 60, .22), transparent 60%),
+    linear-gradient(180deg, #0a1a2b 0%, #08182a 55%, #03080f 100%);
+}
+/* ИСПРАВЛЕНО: без z-index, чтобы .wrap не создавал изолированный слой
+   и анимации победы/поражения/ничьей (.fx, z-index 100000) были выше кораблей (99999) */
+.wrap { position: relative; }
+h1, #status { text-shadow: 0 2px 10px rgba(0, 0, 0, .7); }
+#status { color: #b9cdd9; }
+.legend { color: #9db4c2; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
+.scorebar { background: rgba(6, 18, 32, .55); backdrop-filter: blur(4px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .handoff::before, .handoff::after { animation: none; }
+}
+
+/* Корабли на поле фон не затрагивает: никаких фильтров, наложений и прозрачности */
+.ship-layer, .ship-overlay, .ship-rotator, .ship-overlay img { filter: none !important; mix-blend-mode: normal !important; opacity: 1 !important; }

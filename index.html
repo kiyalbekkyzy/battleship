@@ -5,29 +5,104 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Морской бой</title>
 <link rel="stylesheet" href="style.css"> <!-- вынесенные стили -->
+<link rel="stylesheet" href="backgrounds.css">
 </head>
 <body>
 <div class="wrap">
   <h1>🚢 OCEAN FIGHT</h1>                          <!-- заголовок игры -->
   <p id="status">Стреляйте по полю противника — кликните по клетке справа</p> <!-- статус-строка -->
 
+  <div class="scorebar hidden" id="scoreBar"> <!-- шкала счёта матча -->
+    <span class="pips sc-blue" id="scoreL"></span>
+    <span id="roundLbl"></span>
+    <span class="pips sc-red" id="scoreR"></span>
+    <button class="action primary hidden" id="nextRoundBtn">Следующий раунд ▶</button>
+  </div>
+
   <div class="boards">                             <!-- контейнер для двух досок -->
     <div class="board-block">
-      <h2>Ваш флот <span class="tag tag-player">синий</span></h2> <!-- подпись над доской игрока -->
-      <div class="grid" id="playerGrid"></div>      <!-- сетка поля игрока (сюда стреляет компьютер) -->
+      <h2 id="titleL">Ваш флот <span class="tag tag-player">синий</span></h2> <!-- подпись над доской игрока -->
+      <div class="clock hidden" id="clockL"></div> <!-- таймер синих -->
+      <div class="grid" id="playerGrid"></div>
+      <button class="action giveup hidden" id="giveUpL">🏳️ Принять поражение</button>      <!-- сетка поля игрока (сюда стреляет компьютер) -->
     </div>
-    <div class="board-block">
-      <h2>Поле противника <span class="tag tag-enemy">красный</span></h2> <!-- подпись над доской врага -->
-      <div class="grid enemy" id="enemyGrid"></div>  <!-- сетка поля врага (сюда стреляет игрок) -->
+    <div class="board-block" id="enemyBlock"> <!-- блок поля врага (скрывается при расстановке) -->
+      <h2 id="titleR">Поле противника <span class="tag tag-enemy">красный</span></h2> <!-- подпись над доской врага -->
+      <div class="clock hidden" id="clockR"></div> <!-- таймер красных -->
+      <div class="grid enemy" id="enemyGrid"></div>
+      <button class="action giveup hidden" id="giveUpR">🏳️ Красные: принять поражение</button>  <!-- сетка поля врага (сюда стреляет игрок) -->
     </div>
   </div>
 
+  <div class="setup hidden" id="setupPanel"> <!-- панель ручной расстановки -->
+    <div class="fleet" id="fleetList"></div>
+    <div class="controls">
+      <button class="action" id="rotateBtn">Повернуть: вдоль</button>
+      <button class="action" id="randomBtn">Случайно</button>
+      <button class="action" id="clearBtn">Очистить</button>
+      <button class="action primary" id="startBtn">В бой</button>
+    </div>
+    <p class="legend">Выберите корабль, кликните по своему полю. Поворот: кнопка, клавиша R или правый клик. Клик по поставленному кораблю снимает его. Корабли не должны касаться друг друга.</p>
+  </div>
+
   <div class="controls">                             <!-- панель кнопок управления -->
+    <button class="action" id="homeBtn">🏠 Меню</button>
     <button class="action primary" id="newGameBtn">Новая игра</button> <!-- кнопка новой игры -->
     <button class="action" id="soundBtn">🔊 Звук: вкл</button>          <!-- переключатель звука -->
   </div>
 
   <p class="legend">Синие корабли — ваш флот, он виден всегда. Корабли противника скрыты и появляются красным силуэтом только когда потоплены целиком. Взрыв — попадание, точка — промах.</p>
+</div>
+
+<div class="handoff" id="home"> <!-- главный экран -->
+  <div class="box">
+    <h2 class="home-title">🚢 OCEAN FIGHT</h2>
+    <p>Морской бой</p>
+    <button class="action primary big" id="modeAiBtn">🎮 1 игрок</button>
+    <button class="action big" id="modePvpBtn">🤝 Сыграть с другом</button>
+  </div>
+</div>
+
+<div class="handoff hidden" id="soloMenu"> <!-- меню игры для одного: НУБ или ПРО -->
+  <div class="box menu">
+    <h2>🎮 Игра против компьютера</h2>
+    <div class="opt-title">Выбери режим</div>
+    <div class="opts" id="modeOpts">
+      <button class="mode-btn" data-t="0">🐣 НУБ<small>без таймера — играем спокойно</small></button>
+      <button class="mode-btn selected" data-t="1">🔥 ПРО ⏱<small>таймер 20 с · +2 с за каждый потопленный корабль. Бросишь вызов себе?</small></button>
+    </div>
+    <button class="action primary" id="soloStart">Начать ▶</button>
+    <button class="action" id="soloCancel">Назад</button>
+  </div>
+</div>
+
+<div class="handoff final hidden" id="final"> <!-- итог матча на весь экран -->
+  <div class="box" id="finalBox"></div>
+</div>
+
+<div class="handoff hidden" id="menu"> <!-- меню «Сыграть с другом» -->
+  <div class="box menu">
+    <h2>🤝 Сыграть с другом</h2>
+    <div class="opt-title">Формат</div>
+    <div class="opts" id="fmtOpts">
+      <button class="chip selected" data-v="single">Быстрая игра</button>
+      <button class="chip" data-v="match">🏅 Матч</button>
+    </div>
+    <div class="opts hidden" id="roundOpts">
+      <span class="opt-title">Раундов (от 2 до 6):</span>
+      <button class="chip" data-r="2">2</button>
+      <button class="chip selected" data-r="3">3</button>
+      <button class="chip" data-r="own">Своё</button>
+      <input type="number" id="ownRounds" min="2" max="6" value="4" placeholder="2–6" title="От 2 до 6 раундов" class="hidden">
+    </div>
+    <button class="action primary" id="menuStart">Начать ▶</button>
+    <button class="action" id="menuCancel">Назад</button>
+  </div>
+</div>
+
+<div class="handoff hidden" id="handoff"> <!-- экран передачи устройства (2 игрока) -->
+  <div class="box"><h2 id="handoffTitle"></h2><p id="handoffText"></p>
+  <button class="action primary" id="handoffBtn">Я готов</button></div>
 </div>
 
 <script src="script.js" defer></script> <!-- вынесенная логика игры -->
